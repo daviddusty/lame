@@ -1,0 +1,75 @@
+name: Build LAME for Windows
+
+on:
+  workflow_dispatch: # Manual trigger
+  #push:
+  #  branches: [ "master", "stable" ]
+  #pull_request:
+  #  branches: [ "master", "stable" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        platform: [x86, x64]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Download and Install NASM
+      shell: pwsh
+      run: |
+        $nasm_url = "https://www.nasm.us/pub/nasm/releasebuilds/3.02/win64/nasm-3.02-win64.zip"
+        Invoke-WebRequest -Uri $nasm_url -OutFile "${{ runner.temp }}\nasm.zip"
+        Expand-Archive -Path "${{ runner.temp }}\nasm.zip" -DestinationPath "${{ runner.temp }}\nasm"
+        echo "${{ runner.temp }}\nasm" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Download LAME Source
+      shell: pwsh
+      run: |
+        # This step simulates the AppVeyor 'before_build' section.
+        # You may need to adjust the URL based on your needs (trunk vs stable).
+        $lame_url = "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
+        Invoke-WebRequest -Uri $lame_url -OutFile "${{ runner.temp }}\lame.tar.gz"
+        tar -xzf "${{ runner.temp }}\lame.tar.gz" -C "${{ runner.temp }}"
+        # Move source to a known location, e.g., workspace
+        Move-Item -Path "${{ runner.temp }}\lame-3.100" -Destination "lame-src"
+
+    - name: Download mpg123 Library (Example for x64)
+      if: matrix.platform == 'x64'
+      shell: pwsh
+      run: |
+        # Replace with the actual URL from your .appveyor.yml
+        $mpg123_url = "YOUR_MPG123_X64_URL_HERE"
+        Invoke-WebRequest -Uri $mpg123_url -OutFile "${{ runner.temp }}\mpg123.zip"
+        Expand-Archive -Path "${{ runner.temp }}\mpg123.zip" -DestinationPath "lame-src/mpg123"
+
+    - name: Build LAME
+      shell: pwsh
+      run: |
+        cd lame-src
+        # Use MSBuild to build the project. The exact command depends on the solution file.
+        # This is an example. You may need to adjust 'LAME.sln' and the platform.
+        msbuild /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} LAME.sln
+
+    - name: Prepare Artifacts
+      shell: pwsh
+      run: |
+        # Create a directory for the output
+        New-Item -ItemType Directory -Force -Path "output"
+        # Copy the built executable. Adjust the path as needed.
+        Copy-Item "lame-src\Release\lame.exe" -Destination "output\lame.exe"
+        # Include other necessary files like the DLL
+        # Copy-Item "lame-src\Release\libmpg123-0.dll" -Destination "output\"
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: lame-windows-${{ matrix.platform }}
+        path: output/
