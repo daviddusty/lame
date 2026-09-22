@@ -13,6 +13,8 @@ on:
   #  branches:
   #    - master
   #    - stable
+permissions:
+  contents: write
 
 env:
   TAG: ${{ github.ref_name }}
