@@ -47,27 +47,56 @@ jobs:
 
       - name: Fetch LAME source (branch-dependent)
         run: |
+          # Stop on the first cmdlet error instead of silently limping on
+          # with a half-populated / missing lame_src directory.
+          $ErrorActionPreference = "Stop"
+
           cd "$env:REPO_DIR"
           Write-Host "Branch: $env:GITHUB_REF_NAME"
 
-          if ("$env:GITHUB_REF_NAME" -eq "master") {
+          if ($env:GITHUB_REF_NAME -eq "master") {
             # NOTE: requires an svn client on the runner; not preinstalled on
             # windows-latest, so install one first if this branch is used.
             svn checkout "$env:LAME_LATEST_URL" "lame-svn"
             Move-Item "lame-svn\lame" "lame_src"
           }
+          elseif ($env:GITHUB_REF_NAME -eq "stable") {
+            Invoke-WebRequest -Uri "$env:LAME_STABLE_URL" -OutFile "$env:REPO_DIR\lame.tar.gz" -UserAgent "Mozilla/5.0"
+            $size = (Get-Item lame.tar.gz).Length
+            Write-Host "Downloaded lame.tar.gz: $size bytes"
+            if ($size -lt 100000) {
+              # Sourceforge sometimes serves an HTML redirect/interstitial
+              # page instead of the file; a real tarball is several hundred KB+.
+              Write-Host (Get-Content lame.tar.gz -Raw)
+              throw "Downloaded lame.tar.gz looks too small to be the real archive."
+            }
 
-          if ("$env:GITHUB_REF_NAME" -eq "stable") {
-            Invoke-WebRequest -Uri "$env:LAME_STABLE_URL" -OutFile "$env:REPO_DIR\lame.tar.gz"
-            7z x "lame.tar.gz" | Out-Null
-            7z x "*.tar" | Out-Null
+            7z x "lame.tar.gz" -y | Out-Null
+            7z x "*.tar" -y | Out-Null
             Remove-Item lame.tar.gz, *.tar -ErrorAction SilentlyContinue
+
+            Write-Host "Directories present after extraction:"
+            Get-ChildItem -Directory | Format-Table Name
+
             $extracted = Get-ChildItem -Directory -Filter "lame*" | Select-Object -First 1
+            if (-not $extracted) {
+              throw "Could not find an extracted 'lame*' directory after unpacking the tarball."
+            }
             Move-Item $extracted.FullName "lame_src"
           }
+          else {
+            throw "Unhandled branch '$env:GITHUB_REF_NAME' - expected 'master' or 'stable'."
+          }
+
+          if (-not (Test-Path "lame_src\vc_solution")) {
+            throw "lame_src\vc_solution does not exist - source fetch/extraction failed."
+          }
+          Write-Host "lame_src\vc_solution contents:"
+          Get-ChildItem "lame_src\vc_solution" | Format-Table Name
 
       - name: Download mpg123
         run: |
+          $ErrorActionPreference = "Stop"
           cd "$env:REPO_DIR"
           New-Item -ItemType Directory -Force -Path "lame_src\vc_solution\mpg123" | Out-Null
 
@@ -83,6 +112,7 @@ jobs:
 
       - name: Patch project files (v142 -> v145)
         run: |
+          $ErrorActionPreference = "Stop"
           cd "$env:REPO_DIR"
           $files = @(
             "lame_src\vc_solution\vs2019_lame_lame.vcxproj",
@@ -106,6 +136,7 @@ jobs:
 
       - name: Package artifacts
         run: |
+          $ErrorActionPreference = "Stop"
           cd "$env:REPO_DIR"
           New-Item -ItemType Directory -Force -Path win32, x64 | Out-Null
 
