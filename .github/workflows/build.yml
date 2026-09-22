@@ -13,7 +13,6 @@ on:
 
 env:
   NASM_URL: https://www.nasm.us/pub/nasm/releasebuilds/3.02/win64/nasm-3.02-win64.zip
-  LAME_LATEST_URL: https://svn.code.sf.net/p/lame/svn/trunk
   LAME_STABLE_URL: https://sourceforge.net/projects/lame/files/lame/4.0/lame-4.0.tar.gz
   LAME_SOL_FILE: vs2019_lame.sln
   LAME_MSBUILD_ARGS_X86: /maxcpucount /target:lame /property:Configuration=ReleaseNASM,Platform=Win32
@@ -45,48 +44,36 @@ jobs:
           echo "C:\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & "C:\NASM\nasm.exe" -v
 
-      - name: Fetch LAME source (branch-dependent)
+      - name: Fetch LAME source (stable release)
         run: |
           # Stop on the first cmdlet error instead of silently limping on
           # with a half-populated / missing lame_src directory.
           $ErrorActionPreference = "Stop"
 
           cd "$env:REPO_DIR"
-          Write-Host "Branch: $env:GITHUB_REF_NAME"
 
-          if ($env:GITHUB_REF_NAME -eq "master") {
-            # NOTE: requires an svn client on the runner; not preinstalled on
-            # windows-latest, so install one first if this branch is used.
-            svn checkout "$env:LAME_LATEST_URL" "lame-svn"
-            Move-Item "lame-svn\lame" "lame_src"
+          Invoke-WebRequest -Uri "$env:LAME_STABLE_URL" -OutFile "$env:REPO_DIR\lame.tar.gz" -UserAgent "Mozilla/5.0"
+          $size = (Get-Item lame.tar.gz).Length
+          Write-Host "Downloaded lame.tar.gz: $size bytes"
+          if ($size -lt 100000) {
+            # Sourceforge sometimes serves an HTML redirect/interstitial
+            # page instead of the file; a real tarball is several hundred KB+.
+            Write-Host (Get-Content lame.tar.gz -Raw)
+            throw "Downloaded lame.tar.gz looks too small to be the real archive."
           }
-          elseif ($env:GITHUB_REF_NAME -eq "stable") {
-            Invoke-WebRequest -Uri "$env:LAME_STABLE_URL" -OutFile "$env:REPO_DIR\lame.tar.gz" -UserAgent "Mozilla/5.0"
-            $size = (Get-Item lame.tar.gz).Length
-            Write-Host "Downloaded lame.tar.gz: $size bytes"
-            if ($size -lt 100000) {
-              # Sourceforge sometimes serves an HTML redirect/interstitial
-              # page instead of the file; a real tarball is several hundred KB+.
-              Write-Host (Get-Content lame.tar.gz -Raw)
-              throw "Downloaded lame.tar.gz looks too small to be the real archive."
-            }
 
-            7z x "lame.tar.gz" -y | Out-Null
-            7z x "*.tar" -y | Out-Null
-            Remove-Item lame.tar.gz, *.tar -ErrorAction SilentlyContinue
+          7z x "lame.tar.gz" -y | Out-Null
+          7z x "*.tar" -y | Out-Null
+          Remove-Item lame.tar.gz, *.tar -ErrorAction SilentlyContinue
 
-            Write-Host "Directories present after extraction:"
-            Get-ChildItem -Directory | Format-Table Name
+          Write-Host "Directories present after extraction:"
+          Get-ChildItem -Directory | Format-Table Name
 
-            $extracted = Get-ChildItem -Directory -Filter "lame*" | Select-Object -First 1
-            if (-not $extracted) {
-              throw "Could not find an extracted 'lame*' directory after unpacking the tarball."
-            }
-            Move-Item $extracted.FullName "lame_src"
+          $extracted = Get-ChildItem -Directory -Filter "lame*" | Select-Object -First 1
+          if (-not $extracted) {
+            throw "Could not find an extracted 'lame*' directory after unpacking the tarball."
           }
-          else {
-            throw "Unhandled branch '$env:GITHUB_REF_NAME' - expected 'master' or 'stable'."
-          }
+          Move-Item $extracted.FullName "lame_src"
 
           if (-not (Test-Path "lame_src\vc_solution")) {
             throw "lame_src\vc_solution does not exist - source fetch/extraction failed."
