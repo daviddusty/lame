@@ -140,7 +140,8 @@ jobs:
           # $hash = (Get-FileHash -Algorithm SHA256 "lame.exe").Hash.ToString().ToLower()
           # "$hash *lame.exe" | Out-File -FilePath "lame.exe.sha256" -Encoding ascii
 
-          7z a -mx9 "lame.7z" "Readme.md" "win32" "x64"
+          dir
+          7z a -mx9 "lame.7z" "win32" "x64"
           $hash = (Get-FileHash -Algorithm SHA256 "lame.7z").Hash.ToLower()
           "$hash *lame.7z" | Out-File -FilePath "lame.7z.sha256" -Encoding ascii
 
