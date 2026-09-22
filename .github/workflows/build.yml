@@ -13,7 +13,7 @@ on:
 
 env:
   NASM_URL: https://www.nasm.us/pub/nasm/releasebuilds/3.02/win64/nasm-3.02-win64.zip
-  LAME_STABLE_URL: https://sourceforge.net/projects/lame/files/lame/4.0/lame-4.0.tar.gz
+  LAME_STABLE_URL: https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz
   LAME_SOL_FILE: vs2019_lame.sln
   LAME_MSBUILD_ARGS_X86: /maxcpucount /target:lame /property:Configuration=ReleaseNASM,Platform=Win32
   LAME_MSBUILD_ARGS_X64: /maxcpucount /target:lame /property:Configuration=Release,Platform=x64
@@ -52,7 +52,8 @@ jobs:
 
           cd "$env:REPO_DIR"
 
-          Invoke-WebRequest -Uri "$env:LAME_STABLE_URL" -OutFile "$env:REPO_DIR\lame.tar.gz" -UserAgent "Mozilla/5.0"
+          # Invoke-WebRequest -Uri "$env:LAME_STABLE_URL" -OutFile "$env:REPO_DIR\lame.tar.gz" -UserAgent "Mozilla/5.0"
+          curl -L -o "$env:REPO_DIR\lame.tar.gz" "$env:LAME_STABLE_URL"
           $size = (Get-Item lame.tar.gz).Length
           Write-Host "Downloaded lame.tar.gz: $size bytes"
           if ($size -lt 100000) {
