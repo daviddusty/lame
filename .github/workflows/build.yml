@@ -147,7 +147,7 @@ jobs:
           dir
           7z a -mx9 "lame_${{ env.TAG }}.7z" "win32" "x64"
           $hash = (Get-FileHash -Algorithm SHA256 "lame_${{ env.TAG }}.7z").Hash.ToLower()
-          "$hash *lame${{ env.TAG }}.7z" | Out-File -FilePath "lame${{ env.TAG }}.7z.sha256" -Encoding ascii
+          "$hash *lame_${{ env.TAG }}.7z" | Out-File -FilePath "lame_${{ env.TAG }}.7z.sha256" -Encoding ascii
 
       - name: Upload lame.7z
         uses: actions/upload-artifact@v4
