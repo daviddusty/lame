@@ -1,6 +1,9 @@
 name: Build LAME for Windows
 
 on:
+  push:
+    tags:
+      - "v*.*.*"
   workflow_dispatch: # Manual trigger
   #push:
   #  branches: [ "master", "stable" ]
@@ -12,6 +15,7 @@ on:
   #    - stable
 
 env:
+  TAG: ${{ github.ref_name }}
   NASM_URL: https://www.nasm.us/pub/nasm/releasebuilds/3.02/win64/nasm-3.02-win64.zip
   LAME_STABLE_URL: https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz
   LAME_SOL_FILE: vs2019_lame.sln
@@ -141,18 +145,26 @@ jobs:
           # "$hash *lame.exe" | Out-File -FilePath "lame.exe.sha256" -Encoding ascii
 
           dir
-          7z a -mx9 "lame.7z" "win32" "x64"
-          $hash = (Get-FileHash -Algorithm SHA256 "lame.7z").Hash.ToLower()
-          "$hash *lame.7z" | Out-File -FilePath "lame.7z.sha256" -Encoding ascii
+          7z a -mx9 "lame_${{ env.TAG }}.7z" "win32" "x64"
+          $hash = (Get-FileHash -Algorithm SHA256 "lame_${{ env.TAG }}.7z").Hash.ToLower()
+          "$hash *lame${{ env.TAG }}.7z" | Out-File -FilePath "lame${{ env.TAG }}.7z.sha256" -Encoding ascii
 
       - name: Upload lame.7z
         uses: actions/upload-artifact@v4
         with:
           name: exe
-          path: ${{ env.REPO_DIR }}\lame.7z
+          path: ${{ env.REPO_DIR }}\lame_${{ env.TAG }}.7z
 
       - name: Upload checksum
         uses: actions/upload-artifact@v4
         with:
           name: checksum
-          path: ${{ env.REPO_DIR }}\lame.7z.sha256
+          path: ${{ env.REPO_DIR }}\lame_${{ env.TAG }}.7z.sha256
+
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        # if: github.ref_type == 'tag'
+        with:
+          files: |
+            ${{ env.REPO_DIR }}\lame_${{ env.TAG }}.7z
+            ${{ env.REPO_DIR }}\lame_${{ env.TAG }}.7z.sha256
