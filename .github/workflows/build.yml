@@ -136,19 +136,22 @@ jobs:
           Copy-Item "$env:REPO_DIR\lame_src\output\x64\Release\lame.pdb" "x64"
           Copy-Item "$env:REPO_DIR\lame_src\output\x64\Release\libmpg123-0.dll" "x64"
 
-          7z a -sfx7z.sfx -mx9 "lame.exe" "Readme.md" "win32" "x64"
+          # 7z a -sfx7z.sfx -mx9 "lame.exe" "Readme.md" "win32" "x64"
+          # $hash = (Get-FileHash -Algorithm SHA256 "lame.exe").Hash.ToString().ToLower()
+          # "$hash *lame.exe" | Out-File -FilePath "lame.exe.sha256" -Encoding ascii
 
-          $hash = (Get-FileHash -Algorithm SHA256 "lame.exe").Hash.ToString().ToLower()
-          "$hash *lame.exe" | Out-File -FilePath "lame.exe.sha256" -Encoding ascii
+          7z a -mx9 "lame.7z" "Readme.md" "win32" "x64"
+          $hash = (Get-FileHash -Algorithm SHA256 "lame.7z").Hash.ToLower()
+          "$hash *lame.7z" | Out-File -FilePath "lame.7z.sha256" -Encoding ascii
 
-      - name: Upload lame.exe
+      - name: Upload lame.7z
         uses: actions/upload-artifact@v4
         with:
           name: exe
-          path: ${{ env.REPO_DIR }}\lame.exe
+          path: ${{ env.REPO_DIR }}\lame.7z
 
       - name: Upload checksum
         uses: actions/upload-artifact@v4
         with:
           name: checksum
-          path: ${{ env.REPO_DIR }}\lame.exe.sha256
+          path: ${{ env.REPO_DIR }}\lame.7z.sha256
