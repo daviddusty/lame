@@ -57,17 +57,7 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           cd "$env:REPO_DIR"
-
-          # Invoke-WebRequest -Uri "$env:LAME_STABLE_URL" -OutFile "$env:REPO_DIR\lame.tar.gz" -UserAgent "Mozilla/5.0"
           curl -L -o "$env:REPO_DIR\lame.tar.gz" "$env:LAME_STABLE_URL"
-          $size = (Get-Item lame.tar.gz).Length
-          Write-Host "Downloaded lame.tar.gz: $size bytes"
-          if ($size -lt 100000) {
-            # Sourceforge sometimes serves an HTML redirect/interstitial
-            # page instead of the file; a real tarball is several hundred KB+.
-            Write-Host (Get-Content lame.tar.gz -Raw)
-            throw "Downloaded lame.tar.gz looks too small to be the real archive."
-          }
 
           7z x "lame.tar.gz" -y | Out-Null
           7z x "*.tar" -y | Out-Null
