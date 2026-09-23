@@ -23,8 +23,8 @@ env:
   LAME_SOL_FILE: vs2019_lame.sln
   LAME_MSBUILD_ARGS_X86: /maxcpucount /target:lame /property:Configuration=ReleaseNASM,Platform=Win32
   LAME_MSBUILD_ARGS_X64: /maxcpucount /target:lame /property:Configuration=Release,Platform=x64
-  MPG123_URL_X86: https://mpg123.de/download/win32/1.33.5/mpg123-1.33.5-x86.zip
-  MPG123_URL_X64: https://mpg123.de/download/win64/1.33.5/mpg123-1.33.5-x86-64.zip
+  MPG123_URL_X86: https://mpg123.de/download/win32/1.33.7/mpg123-1.33.7-x86.zip
+  MPG123_URL_X64: https://mpg123.de/download/win64/1.33.7/mpg123-1.33.7-x86-64.zip
   REPO_DIR: ${{ github.workspace }}
 
 jobs:
